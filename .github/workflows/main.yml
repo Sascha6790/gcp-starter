@@ -1,0 +1,34 @@
+name: Main Branch CI
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build, Test, Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Needed for Nx affected commands
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npx nx run frontend:lint
+
+      - name: Test
+        run: npx nx run frontend:test
+
+      - name: Build
+        run: npx nx run frontend:build:production

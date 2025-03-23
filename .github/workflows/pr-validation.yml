@@ -1,0 +1,63 @@
+name: Pull Request Validation
+
+on:
+  pull_request:
+    branches: ['*']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Build, Test, Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Check Formatting
+        run: npx nx format:check
+
+      - name: Lint
+        run: npx nx run frontend:lint
+
+      - name: Test
+        run: npx nx run frontend:test
+
+      - name: Build
+        run: npx nx run frontend:build:production
+
+      - name: Report Status
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo, number } = context.issue;
+            const run_url = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
+
+            // Get job status
+            const result = context.job.status === 'success' ? '✅ All checks passed!' : '❌ Some checks failed';
+
+            // Create comment with status
+            const body = `## CI Result: ${result}\n\nDetails: [View CI Run](${run_url})\n\n`;
+
+            // Add comment to PR
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: number,
+              body
+            });
