@@ -37,6 +37,7 @@ jobs:
         run: npx nx affected -t lint test build e2e --base=origin/main
 
       - name: Report Status
+        if: always()
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -44,7 +45,12 @@ jobs:
             const { owner, repo, number } = context.issue;
             const run_url = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
 
-            const result = context.job.status === 'success' ? '✅ All checks passed!' : '❌ Some checks failed';
+            // Prüfe, ob vorherige Schritte fehlgeschlagen sind
+            const failed = context.job.steps.some(step =>
+              step.name !== 'Report Status' && step.conclusion === 'failure'
+            );
+
+            const result = failed ? '❌ Some checks failed' : '✅ All checks passed!';
 
             const body = `## CI Result: ${result}\n\nDetails: [View CI Run](${run_url})\n\n`;
 
