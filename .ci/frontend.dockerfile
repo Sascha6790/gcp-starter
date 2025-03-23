@@ -14,7 +14,6 @@ COPY . .
 
 # Build the application
 RUN npx nx build frontend --configuration=production
-RUN npx nx build frontend:server --configuration=production
 
 # Stage 2: Create a lightweight production image
 FROM node:20-alpine AS production
@@ -36,4 +35,4 @@ ENV PORT=4000
 EXPOSE ${PORT}
 
 # Run the server
-CMD ["node", "dist/apps/frontend/server/main.js"]
+CMD ["node", "dist/apps/frontend/server/server.mjs"]
