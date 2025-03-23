@@ -1,0 +1,150 @@
+name: PR Preview Deploy
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - 'apps/frontend/**'
+      - '.ci/frontend.dockerfile'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  pull-requests: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/frontend-preview
+  NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+
+jobs:
+  build-and-push:
+    name: Build and Push Preview Image
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Generate unique preview ID
+        id: preview-id
+        run: echo "id=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+      
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=${{ steps.preview-id.outputs.id }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: .ci/frontend.dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            APP_ENV=preview
+      
+  deploy-preview:
+    name: Deploy Preview Environment
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Generate unique preview ID
+        id: preview-id
+        run: echo "id=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+      
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: frontend-${{ steps.preview-id.outputs.id }}
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.preview-id.outputs.id }}
+          region: ${{ vars.GCP_REGION }}
+          flags: |
+            --allow-unauthenticated
+            --port=4000
+            --memory=512Mi
+            --cpu=1
+            --set-env-vars=NODE_ENV=preview,PR_NUMBER=${{ github.event.pull_request.number }}
+            --tag=pr-preview
+      
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo, number } = context.issue;
+            const deployUrl = "${{ steps.deploy.outputs.url }}";
+            
+            const body = `## 🚀 Preview Environment Deployed
+            
+            Your changes have been deployed to a preview environment:
+            
+            **Preview URL:** [${deployUrl}](${deployUrl})
+            
+            This environment will be automatically updated when you push new changes to this PR.`;
+            
+            github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: number,
+              body
+            });
+
+  cleanup-on-close:
+    name: Cleanup Preview on PR Close
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Generate unique preview ID
+        id: preview-id
+        run: echo "id=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+      
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      
+      - name: Delete Cloud Run service
+        run: |
+          gcloud run services delete frontend-${{ steps.preview-id.outputs.id }} \
+            --region=${{ vars.GCP_REGION }} \
+            --quiet || true
+      
+      - name: Delete Docker image
+        run: |
+          gcloud container images delete ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.preview-id.outputs.id }} \
+            --quiet || true
