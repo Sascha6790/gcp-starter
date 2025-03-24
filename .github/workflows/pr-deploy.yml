@@ -14,11 +14,9 @@ permissions:
   pull-requests: write
 
 env:
-  PROJECT_ID: qualified-gist-454616-m5
-  GH_REPOSITORY: 'sascha6790' #we can't use github.repository because docker requires a lowercase name
   REGISTRY: ghcr.io
-  REGISTRY_GCP: europe-west3-docker.pkg.dev/${{ env.PROJECT_ID }}/ghcr
-  IMAGE_NAME: ${{ env.GH_REPOSITORY }}/frontend-preview
+  REGISTRY_GCP: europe-west3-docker.pkg.dev/qualified-gist-454616-m5/ghcr
+  IMAGE_NAME: sascha6790/frontend-preview #we can't use github.repository because docker requires a lowercase name
 
 jobs:
   build-and-push:
