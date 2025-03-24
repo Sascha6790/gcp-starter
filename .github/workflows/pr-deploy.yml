@@ -131,7 +131,7 @@ jobs:
 
   cleanup-on-close:
     name: Cleanup Preview on PR Close
-    if: github.event.pull_request.merged == true || github.event.action == 'closed'
+    if: github.event.pull_request.merged == true || github.event.action == 'closed' || github.event.pull_request.merged == false
     runs-on: ubuntu-latest
 
     steps:
