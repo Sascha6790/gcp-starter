@@ -77,6 +77,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCLOUD_CREDENTIALS_KEY }}
+          service_account: github@qualified-gist-454616-m5.iam.gserviceaccount.com
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
