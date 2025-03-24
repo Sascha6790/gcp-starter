@@ -98,6 +98,14 @@ jobs:
             --set-env-vars=NODE_ENV=preview,PR_NUMBER=${{ github.event.pull_request.number }}
             --tag=pr-preview
 
+      - name: Allow HTTP Access
+        run: |
+          gcloud run services add-iam-policy-binding frontend-${{ steps.preview-id.outputs.id }} \
+            --member="allUsers" \
+            --role="roles/run.invoker" \
+            --region=${{ vars.GCP_REGION }} \
+            --project=qualified-gist-454616-m5
+
       - name: Comment on PR
         uses: actions/github-script@v7
         with:
