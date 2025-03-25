@@ -55,6 +55,12 @@ app.use('/**', (req, res, next) => {
  */
 if (isMainModule(import.meta.url)) {
   const port = process.env['PORT'] || 4000;
+  console.log('Server starting with environment:', {
+    NODE_ENV: process.env['NODE_ENV'],
+    BACKEND_API_URL: process.env['BACKEND_API_URL'],
+    PORT: port,
+    ENV_KEYS: Object.keys(process.env).slice(0, 20)
+  });
   app.listen(port, () => {
     console.log(`Node Express server listening on http://localhost:${port}`);
   });
