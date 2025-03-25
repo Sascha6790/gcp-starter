@@ -28,8 +28,8 @@ permissions:
 env:
   REGISTRY: ghcr.io
   REGISTRY_GCP: europe-west3-docker.pkg.dev/qualified-gist-454616-m5/ghcr
-  FRONTEND_IMAGE_NAME: ${{ github.repository }}/frontend
-  BACKEND_IMAGE_NAME: ${{ github.repository }}/backend
+  FRONTEND_IMAGE_NAME: sascha6790/frontend
+  BACKEND_IMAGE_NAME: sascha6790/backend
   NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
 
 jobs:
