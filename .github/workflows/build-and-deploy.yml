@@ -27,6 +27,7 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
+  REGISTRY_GCP: europe-west3-docker.pkg.dev/qualified-gist-454616-m5/ghcr
   FRONTEND_IMAGE_NAME: ${{ github.repository }}/frontend
   BACKEND_IMAGE_NAME: ${{ github.repository }}/backend
   NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
@@ -142,7 +143,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: frontend-${{ github.event.inputs.environment || 'staging' }}
-          image: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ github.event.inputs.environment || 'staging' }}
+          image: ${{ env.REGISTRY_GCP }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ github.event.inputs.environment || 'staging' }}
           region: ${{ vars.GCP_REGION }}
           flags: |
             --allow-unauthenticated
@@ -179,7 +180,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: backend-${{ github.event.inputs.environment || 'staging' }}
-          image: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:${{ github.event.inputs.environment || 'staging' }}
+          image: ${{ env.REGISTRY_GCP }}/${{ env.BACKEND_IMAGE_NAME }}:${{ github.event.inputs.environment || 'staging' }}
           region: ${{ vars.GCP_REGION }}
           flags: |
             --allow-unauthenticated
