@@ -1,6 +1,7 @@
 import { Component, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { BackendTestService, TestResponse } from './backend-test.service';
+import { EnvironmentStateService } from '../core/environment-state.service';
 
 @Component({
   selector: 'app-backend-test',
@@ -23,9 +24,15 @@ import { BackendTestService, TestResponse } from './backend-test.service';
         <p class="timestamp">Timestamp: {{ testResponse.timestamp | date:'medium' }}</p>
         
         <div *ngIf="testResponse.environment" class="environment-info">
-          <h3>Environment Information</h3>
+          <h3>Backend Environment Information</h3>
           <p>Production Mode: {{ testResponse.environment.production ? 'Yes' : 'No' }}</p>
           <p>Frontend URL set in Backend: {{ testResponse.environment.frontendUrl }}</p>
+        </div>
+        
+        <div class="environment-info">
+          <h3>Frontend Environment Information</h3>
+          <p>Backend API URL: {{ environment.BACKEND_API_URL }}</p>
+          <p>NODE_ENV: {{ environment.NODE_ENV }}</p>
         </div>
       </div>
       
@@ -109,10 +116,16 @@ import { BackendTestService, TestResponse } from './backend-test.service';
 })
 export class BackendTestComponent implements OnInit {
   private backendTestService = inject(BackendTestService);
+  private envService = inject(EnvironmentStateService);
   
   testResponse: TestResponse | null = null;
   loading = false;
   error: string | null = null;
+  
+  // Expose environment config for the template
+  get environment() {
+    return this.envService.entireConfig;
+  }
   
   ngOnInit(): void {
     // Automatically test the backend on component initialization

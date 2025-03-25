@@ -3,6 +3,9 @@ FROM node:20-alpine AS build
 
 WORKDIR /app
 
+# Set build arguments with defaults
+ARG APP_ENV=production
+
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
@@ -12,8 +15,8 @@ RUN npm ci --legacy-peer-deps
 # Copy the rest of the application code
 COPY . .
 
-# Build the application
-RUN npx nx build frontend --configuration=production
+# Build the application with the specified configuration
+RUN npx nx build frontend --configuration=${APP_ENV}
 
 # Stage 2: Create a lightweight production image
 FROM node:20-alpine AS production

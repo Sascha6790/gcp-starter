@@ -72,6 +72,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            APP_ENV=${{ github.event.inputs.environment || 'staging' }}
 
   build-and-push-backend:
     name: Build and Push Backend Docker Image
@@ -113,6 +115,8 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            APP_ENV=${{ github.event.inputs.environment || 'staging' }}
 
   deploy-frontend:
     name: Deploy Frontend to Cloud Run
@@ -145,7 +149,7 @@ jobs:
             --port=4000
             --memory=512Mi
             --cpu=1
-            --set-env-vars=NODE_ENV=production,BACKEND_API_URL=https://backend-${{ github.event.inputs.environment || 'staging' }}-${{ vars.GCP_PROJECT_ID }}.a.run.app
+            --set-env-vars=NODE_ENV=${{ github.event.inputs.environment || 'production' }},BACKEND_API_URL=https://backend-${{ github.event.inputs.environment || 'staging' }}-${{ vars.GCP_PROJECT_ID }}.a.run.app
 
       - name: Show Output
         run: |
@@ -182,7 +186,7 @@ jobs:
             --port=3000
             --memory=512Mi
             --cpu=1
-            --set-env-vars=NODE_ENV=production,FRONTEND_URL=https://frontend-${{ github.event.inputs.environment || 'staging' }}-${{ vars.GCP_PROJECT_ID }}.a.run.app
+            --set-env-vars=NODE_ENV=${{ github.event.inputs.environment || 'production' }},FRONTEND_URL=https://frontend-${{ github.event.inputs.environment || 'staging' }}-${{ vars.GCP_PROJECT_ID }}.a.run.app
 
       - name: Show Output
         run: |

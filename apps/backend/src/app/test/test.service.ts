@@ -1,15 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { environment } from '../config/environment';
+import { ConfigService } from '../config/config.service';
 
 @Injectable()
 export class TestService {
+  constructor(private configService: ConfigService) {}
+
   getTestMessage() {
     return {
       message: 'Backend test endpoint working successfully!',
       timestamp: new Date().toISOString(),
       environment: {
-        production: environment.production,
-        frontendUrl: environment.frontendUrl,
+        production: this.configService.isProduction,
+        frontendUrl: this.configService.frontendUrl,
+        config: this.configService.entireConfig
       }
     };
   }

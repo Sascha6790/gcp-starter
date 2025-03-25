@@ -7,21 +7,23 @@ import { Logger } from '@nestjs/common';
 import { CorsOptions } from '@nestjs/common/interfaces/external/cors-options.interface';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
-import { environment } from './app/config/environment';
+import { ConfigService } from './app/config/config.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
+
+  const configService = app.get(ConfigService);
+
   // Enable CORS
   const corsOptions: CorsOptions = {
-    origin: environment.frontendUrl,
+    origin: configService.frontendUrl,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   };
   app.enableCors(corsOptions);
   const globalPrefix = 'api';
   app.setGlobalPrefix(globalPrefix);
-  const port = environment.port;
+  const port = configService.port;
   await app.listen(port);
   Logger.log(
     `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`

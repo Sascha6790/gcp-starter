@@ -65,7 +65,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            APP_ENV=preview
+            APP_ENV=staging
 
   build-and-push-backend:
     name: Build and Push Backend Preview Image
@@ -143,7 +143,7 @@ jobs:
             --port=4000
             --memory=512Mi
             --cpu=1
-            --set-env-vars=NODE_ENV=preview,PR_NUMBER=${{ github.event.pull_request.number }},BACKEND_API_URL=https://backend-${{ steps.preview-id.outputs.id }}-${{ vars.GCP_PROJECT_ID }}.a.run.app
+            --set-env-vars=NODE_ENV=staging,BACKEND_API_URL=https://backend-${{ steps.preview-id.outputs.id }}-${{ vars.GCP_PROJECT_ID }}.a.run.app
             --tag=pr-preview
 
       - name: Allow HTTP Access for Frontend
@@ -237,5 +237,3 @@ jobs:
               issue_number: number,
               body
             });
-
-
