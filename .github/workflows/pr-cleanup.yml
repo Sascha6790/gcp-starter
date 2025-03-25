@@ -11,7 +11,8 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: sascha6790/frontend-preview
+  FRONTEND_IMAGE_NAME: sascha6790/frontend-preview
+  BACKEND_IMAGE_NAME: sascha6790/backend-preview
 
 jobs:
   cleanup:
@@ -32,13 +33,20 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Delete Cloud Run service
+      - name: Delete Cloud Run services
         run: |
           gcloud run services delete frontend-${{ steps.preview-id.outputs.id }} \
             --region=${{ vars.GCP_REGION }} \
             --quiet || true
+          
+          gcloud run services delete backend-${{ steps.preview-id.outputs.id }} \
+            --region=${{ vars.GCP_REGION }} \
+            --quiet || true
 
-      - name: Delete Docker image
+      - name: Delete Docker images
         run: |
-          gcloud container images delete ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.preview-id.outputs.id }} \
+          gcloud container images delete ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ steps.preview-id.outputs.id }} \
+            --quiet || true
+            
+          gcloud container images delete ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:${{ steps.preview-id.outputs.id }} \
             --quiet || true
