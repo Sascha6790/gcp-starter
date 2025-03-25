@@ -36,6 +36,8 @@ jobs:
   build-and-push-frontend:
     name: Build and Push Frontend Docker Image
     runs-on: ubuntu-latest
+    outputs:
+      short_sha: ${{ steps.sha.outputs.short_sha }}
 
     steps:
       - name: Checkout Repository
@@ -55,7 +57,7 @@ jobs:
 
       - name: Get Short SHA
         id: sha
-        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
 
       - name: Extract metadata for Docker
         id: meta
@@ -63,9 +65,6 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.FRONTEND_IMAGE_NAME }}
           tags: |
-            type=sha,format=short
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=${{ github.event.inputs.environment || 'staging' }}
             type=raw,value=${{ github.event.inputs.environment || 'staging' }}-${{ steps.sha.outputs.short_sha }}
 
       - name: Build and push Docker image
@@ -103,7 +102,7 @@ jobs:
 
       - name: Get Short SHA
         id: sha
-        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
 
       - name: Extract metadata for Docker
         id: meta
@@ -112,9 +111,6 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}
           tags: |
             type=sha,format=short
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=${{ github.event.inputs.environment || 'staging' }}
-            type=raw,value=${{ github.event.inputs.environment || 'staging' }}-${{ steps.sha.outputs.short_sha }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -153,7 +149,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: frontend-${{ github.event.inputs.environment || 'staging' }}
-          image: ${{ env.REGISTRY_GCP }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ github.event.inputs.environment || 'staging' }}-${{ github.sha }}
+          image: ${{ env.REGISTRY_GCP }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ github.event.inputs.environment || 'staging' }}-${{ needs.build-and-push-frontend.outputs.short_sha }}
           region: ${{ vars.GCP_REGION }}
           flags: |
             --allow-unauthenticated
@@ -190,7 +186,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: backend-${{ github.event.inputs.environment || 'staging' }}
-          image: ${{ env.REGISTRY_GCP }}/${{ env.BACKEND_IMAGE_NAME }}:${{ github.event.inputs.environment || 'staging' }}-${{ github.sha }}
+          image: ${{ env.REGISTRY_GCP }}/${{ env.BACKEND_IMAGE_NAME }}:${{ github.event.inputs.environment || 'staging' }}-${{ needs.build-and-push-frontend.outputs.short_sha }}
           region: ${{ vars.GCP_REGION }}
           flags: |
             --allow-unauthenticated

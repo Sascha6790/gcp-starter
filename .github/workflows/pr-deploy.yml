@@ -146,7 +146,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: frontend-${{ steps.preview-id.outputs.id }}
-          image: ${{ env.REGISTRY_GCP }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ steps.preview-id.outputs.id }}-${{ github.sha }}
+          image: ${{ env.REGISTRY_GCP }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ steps.preview-id.outputs.id }}
           region: ${{ vars.GCP_REGION }}
           flags: |
             --allow-unauthenticated
@@ -188,7 +188,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: backend-${{ steps.preview-id.outputs.id }}
-          image: ${{ env.REGISTRY_GCP }}/${{ env.BACKEND_IMAGE_NAME }}:${{ steps.preview-id.outputs.id }}-${{ github.sha }}
+          image: ${{ env.REGISTRY_GCP }}/${{ env.BACKEND_IMAGE_NAME }}:${{ steps.preview-id.outputs.id }}
           region: ${{ vars.GCP_REGION }}
           flags: |
             --allow-unauthenticated
@@ -215,7 +215,7 @@ jobs:
       - name: Generate unique preview ID
         id: preview-id
         run: echo "id=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-      
+
       - name: Calculate service URLs
         id: urls
         run: |
