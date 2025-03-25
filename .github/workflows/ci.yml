@@ -38,3 +38,10 @@ jobs:
       # Nx Affected runs only tasks affected by the changes in this PR/commit. Learn more: https://nx.dev/ci/features/affected
       # When you enable task distribution, run the e2e-ci task instead of e2e
       - run: npx nx affected -t lint test build e2e
+      
+      # Ensure that both frontend and backend build successfully
+      - name: Build Frontend
+        run: npx nx build frontend --configuration=production
+      
+      - name: Build Backend
+        run: npx nx build backend --configuration=production

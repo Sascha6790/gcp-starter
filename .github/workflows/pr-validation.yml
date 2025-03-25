@@ -37,3 +37,10 @@ jobs:
 
       - name: Lint, Test, Build, E2E
         run: npx nx affected -t lint test build e2e --base=origin/main
+
+      # Explicitly check frontend and backend
+      - name: Build Frontend
+        run: npx nx build frontend
+
+      - name: Build Backend
+        run: npx nx build backend
