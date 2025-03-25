@@ -1,0 +1,44 @@
+name: PR Preview Cleanup
+
+on:
+  pull_request:
+    types: [closed, locked]
+
+permissions:
+  contents: read
+  packages: write
+  pull-requests: read
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: sascha6790/frontend-preview
+
+jobs:
+  cleanup:
+    name: Cleanup Preview Environment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get preview ID
+        id: preview-id
+        run: echo "id=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCLOUD_CREDENTIALS_KEY }}
+          service_account: github@qualified-gist-454616-m5.iam.gserviceaccount.com
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Delete Cloud Run service
+        run: |
+          gcloud run services delete frontend-${{ steps.preview-id.outputs.id }} \
+            --region=${{ vars.GCP_REGION }} \
+            --quiet || true
+
+      - name: Delete Docker image
+        run: |
+          gcloud container images delete ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.preview-id.outputs.id }} \
+            --quiet || true
