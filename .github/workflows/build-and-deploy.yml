@@ -193,7 +193,7 @@ jobs:
             --port=3000
             --memory=512Mi
             --cpu=1
-            --set-env-vars=NODE_ENV=${{ github.event.inputs.environment || 'production' }},FRONTEND_URL=https://frontend-${{ github.event.inputs.environment || 'staging' }}-${{ vars.GCP_PROJECT_ID }}.a.run.app
+            --set-env-vars=NODE_ENV=${{ github.event.inputs.environment || 'production' }},FRONTEND_URL=https://frontend-${{ github.event.inputs.environment || 'staging' }}-${{ vars.GCP_PROJECT_ID }}.${{ vars.GCP_REGION }}.run.app
 
       - name: Show Output
         run: |
