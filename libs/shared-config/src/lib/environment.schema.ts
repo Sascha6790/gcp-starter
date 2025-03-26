@@ -1,7 +1,9 @@
 import * as Joi from 'joi';
 import {
-  BackendEnvironmentConfig,
+  BaseEnvironmentConfig,
   FrontendEnvironmentConfig,
+  BackendEnvironmentConfig,
+  DatabaseConfig
 } from './environment.types';
 
 const baseSchema = {
@@ -9,6 +11,48 @@ const baseSchema = {
     .valid('development', 'production', 'staging', 'test', 'preview')
     .default('development')
     .description('Application runtime environment'),
+  
+  PORT: Joi.number()
+    .default(3000)
+    .description('Port number for the server'),
+};
+
+const databaseSchema = {
+  DB_HOST: Joi.string()
+    .when('NODE_ENV', {
+      is: Joi.string().valid('production'),
+      then: Joi.string().required(),
+      otherwise: Joi.string().default('localhost')
+    })
+    .description('Database host'),
+  
+  DB_PORT: Joi.number()
+    .default(5432)
+    .description('Database port'),
+  
+  DB_USERNAME: Joi.string()
+    .when('NODE_ENV', {
+      is: Joi.string().valid('production'),
+      then: Joi.string().required(),
+      otherwise: Joi.string().default('dev_user')
+    })
+    .description('Database username'),
+  
+  DB_PASSWORD: Joi.string()
+    .when('NODE_ENV', {
+      is: Joi.string().valid('production'),
+      then: Joi.string().required(),
+      otherwise: Joi.string().default('dev_password')
+    })
+    .description('Database password'),
+  
+  DB_NAME: Joi.string()
+    .when('NODE_ENV', {
+      is: Joi.string().valid('production'),
+      then: Joi.string().required(),
+      otherwise: Joi.string().default('dev_db')
+    })
+    .description('Database name'),
 };
 
 export const frontendSchema = Joi.object<FrontendEnvironmentConfig>({
@@ -19,20 +63,20 @@ export const frontendSchema = Joi.object<FrontendEnvironmentConfig>({
     .when('NODE_ENV', {
       is: 'development',
       then: Joi.string().default('http://localhost:3000'),
-      otherwise: Joi.string().required(),
+      otherwise: Joi.string().required()
     })
     .description('Backend API server URL'),
 });
 
-export const backendSchema = Joi.object<BackendEnvironmentConfig>({
+export const backendSchema = Joi.object<BackendEnvironmentConfig & DatabaseConfig>({
   ...baseSchema,
-  PORT: Joi.number().default(3000),
+  ...databaseSchema,
   FRONTEND_URL: Joi.string()
     .uri({ scheme: ['http', 'https'] })
     .when('NODE_ENV', {
       is: 'development',
       then: Joi.string().default('http://localhost:4200'),
-      otherwise: Joi.string().required(),
+      otherwise: Joi.string().required()
     })
     .description('Frontend application URL'),
 });
@@ -62,8 +106,8 @@ export function validateFrontendConfig(
 }
 
 export function validateBackendConfig(
-  config: BackendEnvironmentConfig
-): BackendEnvironmentConfig {
+  config: Record<string, unknown>
+): BackendEnvironmentConfig & DatabaseConfig {
   const { error, value } = backendSchema.validate(config, {
     abortEarly: false,
     allowUnknown: true,
@@ -82,5 +126,9 @@ export function validateBackendConfig(
   }
 
   console.log('Validated backend config:', value);
-  return value;
+  return value as BackendEnvironmentConfig & DatabaseConfig;
+}
+
+export function validateConfig(config: Record<string, unknown>): FrontendEnvironmentConfig {
+  return validateFrontendConfig(config);
 }

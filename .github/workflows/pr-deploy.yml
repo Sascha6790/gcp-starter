@@ -22,6 +22,39 @@ env:
   BACKEND_IMAGE_NAME: sascha6790/backend-preview
 
 jobs:
+  setup-database:
+    name: Setup Postgres Database
+    runs-on: ubuntu-latest
+    outputs:
+      db_host: ${{ steps.setup-db.outputs.db_instance_name }}
+      db_name: ${{ steps.setup-db.outputs.db_name }}
+      db_username: ${{ steps.setup-db.outputs.db_username }}
+      db_password: ${{ steps.setup-db.outputs.db_password }}
+      db_connection_name: ${{ steps.setup-db.outputs.db_connection_name }}
+      vpc_connector: ${{ steps.setup-db.outputs.vpc_connector_name }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Google Cloud SDK
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCLOUD_CREDENTIALS_KEY }}
+          service_account: github@qualified-gist-454616-m5.iam.gserviceaccount.com
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Setup Database
+        id: setup-db
+        run: |
+          chmod +x .ci/setup-database.sh
+          .ci/setup-database.sh ${{ github.event.pull_request.number }}
+
   build-and-push-frontend:
     name: Build and Push Frontend Preview Image
     runs-on: ubuntu-latest
@@ -166,7 +199,7 @@ jobs:
 
   deploy-backend-preview:
     name: Deploy Backend Preview Environment
-    needs: [build-and-push-frontend, build-and-push-backend]
+    needs: [build-and-push-frontend, build-and-push-backend, setup-database]
     runs-on: ubuntu-latest
 
     steps:
@@ -195,8 +228,9 @@ jobs:
             --port=3000
             --memory=512Mi
             --cpu=1
-            --set-env-vars=NODE_ENV=preview,PR_NUMBER=${{ github.event.pull_request.number }},FRONTEND_URL=https://frontend-${{ steps.preview-id.outputs.id }}-${{ vars.GCP_PROJECT_ID }}.${{ vars.GCP_REGION }}.run.app
+            --set-env-vars=NODE_ENV=preview,PR_NUMBER=${{ github.event.pull_request.number }},FRONTEND_URL=https://frontend-${{ steps.preview-id.outputs.id }}-${{ vars.GCP_PROJECT_ID }}.${{ vars.GCP_REGION }}.run.app,DB_HOST=${{ needs.setup-database.outputs.db_host }},DB_NAME=${{ needs.setup-database.outputs.db_name }},DB_USERNAME=${{ needs.setup-database.outputs.db_username }},DB_PASSWORD=${{ needs.setup-database.outputs.db_password }}
             --tag=pr-preview
+            --vpc-connector=${{ needs.setup-database.outputs.vpc_connector }}
 
       - name: Allow HTTP Access for Backend
         run: |
@@ -221,6 +255,7 @@ jobs:
         run: |
           echo "frontend_url=https://frontend-${{ steps.preview-id.outputs.id }}-${{ vars.GCP_PROJECT_ID }}.${{ vars.GCP_REGION }}.run.app" >> $GITHUB_OUTPUT
           echo "backend_url=https://backend-${{ steps.preview-id.outputs.id }}-${{ vars.GCP_PROJECT_ID }}.${{ vars.GCP_REGION }}.run.app" >> $GITHUB_OUTPUT
+          echo "items_url=https://frontend-${{ steps.preview-id.outputs.id }}-${{ vars.GCP_PROJECT_ID }}.${{ vars.GCP_REGION }}.run.app/items" >> $GITHUB_OUTPUT
 
       - name: Comment on PR
         uses: actions/github-script@v7
@@ -230,6 +265,7 @@ jobs:
             const { owner, repo, number } = context.issue;
             const frontendUrl = "${{ steps.urls.outputs.frontend_url }}";
             const backendUrl = "${{ steps.urls.outputs.backend_url }}";
+            const itemsUrl = "${{ steps.urls.outputs.items_url }}";
 
             const body = `## 🚀 Preview Environment Deployed
 
@@ -238,6 +274,7 @@ jobs:
             **Frontend Preview:** [${frontendUrl}](${frontendUrl})
             **Backend API Preview:** [${backendUrl}](${backendUrl})
             **API Test Endpoint:** [${backendUrl}/api/test](${backendUrl}/api/test)
+            **Items Management:** [${itemsUrl}](${itemsUrl})
 
             These environments will be automatically updated when you push new changes to this PR.`;
 

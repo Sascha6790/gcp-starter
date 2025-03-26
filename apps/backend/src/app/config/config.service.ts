@@ -1,18 +1,23 @@
 import { Injectable } from '@nestjs/common';
-import { BackendEnvironmentConfig } from '@gcpstarter/shared-config';
+import { BackendEnvironmentConfig, DatabaseConfig } from '@gcpstarter/shared-config';
 import { configuration } from './configuration';
+
+type ConfigType = BackendEnvironmentConfig & DatabaseConfig;
 
 @Injectable()
 export class ConfigService {
-  private readonly config: BackendEnvironmentConfig;
+  private readonly config: ConfigType;
 
   constructor() {
     this.config = configuration;
+    console.log('ConfigService initialized with config:', {
+      nodeEnv: this.nodeEnv,
+      dbHost: this.get('DB_HOST'),
+      dbUsername: this.get('DB_USERNAME')
+    });
   }
 
-  get<K extends keyof BackendEnvironmentConfig>(
-    key: K
-  ): BackendEnvironmentConfig[K] {
+  get<K extends keyof ConfigType>(key: K): ConfigType[K] {
     return this.config[key];
   }
 
@@ -32,7 +37,7 @@ export class ConfigService {
     return this.config.NODE_ENV === 'production';
   }
 
-  get entireConfig(): BackendEnvironmentConfig {
+  get entireConfig(): ConfigType {
     return { ...this.config };
   }
 }

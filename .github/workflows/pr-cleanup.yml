@@ -24,6 +24,9 @@ jobs:
         id: preview-id
         run: echo "id=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
 
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Set up Google Cloud SDK
         uses: google-github-actions/auth@v2
         with:
@@ -32,6 +35,9 @@ jobs:
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
 
       - name: Delete Cloud Run services
         run: |
@@ -50,3 +56,8 @@ jobs:
             
           gcloud container images delete ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}:${{ steps.preview-id.outputs.id }} \
             --quiet || true
+
+      - name: Cleanup Database and VPC
+        run: |
+          chmod +x .ci/cleanup-database.sh
+          .ci/cleanup-database.sh ${{ github.event.pull_request.number }}
