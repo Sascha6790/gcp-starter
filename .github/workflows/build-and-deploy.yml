@@ -110,7 +110,7 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.BACKEND_IMAGE_NAME }}
           tags: |
-            type=sha,format=short
+            type=raw,value=${{ github.event.inputs.environment || 'staging' }}-${{ steps.sha.outputs.short_sha }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
