@@ -1,21 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { EnvironmentConfig } from '@gcpstarter/shared-config';
+import { BackendEnvironmentConfig } from '@gcpstarter/shared-config';
 import { configuration } from './configuration';
 
 @Injectable()
 export class ConfigService {
-  private readonly config: EnvironmentConfig;
+  private readonly config: BackendEnvironmentConfig;
 
   constructor() {
     this.config = configuration;
   }
 
-  get<K extends keyof EnvironmentConfig>(key: K): EnvironmentConfig[K] {
+  get<K extends keyof BackendEnvironmentConfig>(
+    key: K
+  ): BackendEnvironmentConfig[K] {
     return this.config[key];
-  }
-
-  get backendApiUrl(): string {
-    return this.config.BACKEND_API_URL;
   }
 
   get nodeEnv(): string {
@@ -23,7 +21,7 @@ export class ConfigService {
   }
 
   get port(): number {
-    return this.config.PORT;
+    return this.config.PORT || 3000;
   }
 
   get frontendUrl(): string {
@@ -34,7 +32,7 @@ export class ConfigService {
     return this.config.NODE_ENV === 'production';
   }
 
-  get entireConfig(): EnvironmentConfig {
+  get entireConfig(): BackendEnvironmentConfig {
     return { ...this.config };
   }
 }
