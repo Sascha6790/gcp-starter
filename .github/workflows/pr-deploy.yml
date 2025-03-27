@@ -17,9 +17,12 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  REGISTRY_GCP: europe-west3-docker.pkg.dev/qualified-gist-454616-m5/ghcr
-  FRONTEND_IMAGE_NAME: sascha6790/frontend-preview #we can't use github.repository because docker requires a lowercase name
-  BACKEND_IMAGE_NAME: sascha6790/backend-preview
+  REGISTRY_GCP: europe-west3-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/ghcr
+  FRONTEND_IMAGE_NAME: 'sascha6790/frontend-preview'
+  BACKEND_IMAGE_NAME: 'sascha6790/backend-preview'
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+  GCP_REGION: ${{ vars.GCP_REGION }}
+  GCP_SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }}
 
 jobs:
   validate:
@@ -30,22 +33,22 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
-      
+
       - name: Install Dependencies
         run: npm ci --legacy-peer-deps
-      
+
       - name: Install Playwright
         run: npx playwright install --with-deps
-      
+
       - name: Set SHA for Nx Affected Commands
         uses: nrwl/nx-set-shas@v4
-      
+
       - name: Run Affected Lint, Test, Build, E2E
         run: npx nx affected -t lint test build e2e --base=origin/main
   setup-database:
@@ -68,7 +71,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCLOUD_CREDENTIALS_KEY }}
-          service_account: github@qualified-gist-454616-m5.iam.gserviceaccount.com
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
           export_environment_variables: true
 
       - name: Set up Cloud SDK
@@ -202,7 +205,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCLOUD_CREDENTIALS_KEY }}
-          service_account: github@qualified-gist-454616-m5.iam.gserviceaccount.com
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -228,7 +231,7 @@ jobs:
             --member="allUsers" \
             --role="roles/run.invoker" \
             --region=${{ vars.GCP_REGION }} \
-            --project=qualified-gist-454616-m5
+            --project=${{ vars.GCP_PROJECT_ID }}
 
   deploy-backend-preview:
     name: Deploy Backend Preview Environment
@@ -244,7 +247,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCLOUD_CREDENTIALS_KEY }}
-          service_account: github@qualified-gist-454616-m5.iam.gserviceaccount.com
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -271,7 +274,7 @@ jobs:
             --member="allUsers" \
             --role="roles/run.invoker" \
             --region=${{ vars.GCP_REGION }} \
-            --project=qualified-gist-454616-m5
+            --project=${{ vars.GCP_PROJECT_ID }}
 
   comment-on-pr:
     name: Comment PR with Preview URLs

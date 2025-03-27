@@ -4,9 +4,10 @@ set -e
 # Usage: ./cleanup-database.sh <PR_NUMBER>
 # Script to clean up postgres database and VPC for a PR preview environment
 
+# Get parameters from environment if available, otherwise use defaults
 PR_NUMBER=$1
-PROJECT_ID="qualified-gist-454616-m5"
-REGION="europe-west3"
+PROJECT_ID=${GCP_PROJECT_ID:-"qualified-gist-454616-m5"}
+REGION=${GCP_REGION:-"europe-west3"}
 TERRAFORM_DIR=".terraform"
 
 # Debug Google credentials
@@ -33,8 +34,14 @@ sed -e "s/PR_NUMBER/$PR_NUMBER/g" \
     -e "s|GENERATED_PASSWORD|dummy-password|g" \
     terraform.tfvars.template > terraform.tfvars
 
+# Import shared functions
+source $(dirname "$0")/terraform-common.sh
+
 # Initialize Terraform
 terraform init
+
+# Import existing resources before destroying them
+import_terraform_resources "$PR_NUMBER" "$PROJECT_ID" "$REGION" "dummy-password"
 
 # Destroy Terraform-managed resources
 terraform destroy -auto-approve
