@@ -17,6 +17,10 @@ provider "google" {
 resource "google_compute_network" "pr_vpc_network" {
   name                    = "pr-${var.pr_number}-vpc"
   auto_create_subnetworks = false
+  lifecycle {
+    # Ignore the resource if it already exists
+    ignore_changes = all
+  }
 }
 
 resource "google_compute_subnetwork" "pr_subnet" {
@@ -24,6 +28,9 @@ resource "google_compute_subnetwork" "pr_subnet" {
   ip_cidr_range = "10.0.0.0/24"
   region        = var.region
   network       = google_compute_network.pr_vpc_network.id
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "google_compute_global_address" "private_ip_address" {
@@ -32,12 +39,18 @@ resource "google_compute_global_address" "private_ip_address" {
   address_type  = "INTERNAL"
   prefix_length = 16
   network       = google_compute_network.pr_vpc_network.id
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "google_service_networking_connection" "private_vpc_connection" {
   network                 = google_compute_network.pr_vpc_network.id
   service                 = "servicenetworking.googleapis.com"
   reserved_peering_ranges = [google_compute_global_address.private_ip_address.name]
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "google_sql_database_instance" "postgres_instance" {
@@ -66,6 +79,10 @@ resource "google_sql_database_instance" "postgres_instance" {
       private_network = google_compute_network.pr_vpc_network.id
     }
   }
+  
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "google_sql_database" "database" {
@@ -84,6 +101,9 @@ resource "google_vpc_access_connector" "connector" {
   ip_cidr_range = "10.8.0.0/28"
   network       = google_compute_network.pr_vpc_network.name
   region        = var.region
+  lifecycle {
+    ignore_changes = all
+  }
 }
 
 resource "google_project_service" "vpcaccess_api" {

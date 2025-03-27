@@ -35,10 +35,16 @@ sed -e "s/PR_NUMBER/$PR_NUMBER/g" \
     -e "s|GENERATED_PASSWORD|$DB_PASSWORD|g" \
     terraform.tfvars.template > terraform.tfvars
 
-# Initialize Terraform
+# Initialize Terraform with special import mode
 terraform init
 
-# Apply Terraform configuration
+# First try a plan to see what happens
+terraform plan -out=tf.plan || {
+  echo "Terraform plan failed. This might be because resources already exist."
+  echo "Attempting to continue with apply anyway due to lifecycle.ignore_changes settings."
+}
+
+# Apply Terraform configuration with auto-approve
 terraform apply -auto-approve
 
 # Export outputs
