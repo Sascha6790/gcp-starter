@@ -10,6 +10,8 @@ terraform {
 provider "google" {
   project = var.project_id
   region  = var.region
+  # Explicitly rely on GOOGLE_APPLICATION_CREDENTIALS environment variable
+  # or use the default ~/.config/gcloud/application_default_credentials.json
 }
 
 resource "google_compute_network" "pr_vpc_network" {

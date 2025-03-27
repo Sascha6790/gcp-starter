@@ -9,6 +9,20 @@ PROJECT_ID="qualified-gist-454616-m5"
 REGION="europe-west3"
 TERRAFORM_DIR=".terraform"
 
+# Debug Google credentials
+echo "INFO: Using Google credentials from: $GOOGLE_APPLICATION_CREDENTIALS"
+if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+  echo "ERROR: GOOGLE_APPLICATION_CREDENTIALS is not set"
+  exit 1
+elif [ ! -f "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+  echo "ERROR: Credentials file does not exist: $GOOGLE_APPLICATION_CREDENTIALS"
+  exit 1
+else
+  echo "INFO: Credentials file exists"
+  # Print service account email without showing the actual key
+  grep -o '"client_email":"[^"]*"' "$GOOGLE_APPLICATION_CREDENTIALS" || echo "WARNING: Could not extract client_email from credentials"
+fi
+
 # Generate random password (alphanumeric only to avoid sed issues)
 DB_PASSWORD=$(openssl rand -hex 12)
 
