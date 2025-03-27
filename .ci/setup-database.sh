@@ -9,15 +9,16 @@ PROJECT_ID="qualified-gist-454616-m5"
 REGION="europe-west3"
 TERRAFORM_DIR=".terraform"
 
-# Generate random password
-DB_PASSWORD=$(openssl rand -base64 12)
+# Generate random password (alphanumeric only to avoid sed issues)
+DB_PASSWORD=$(openssl rand -hex 12)
 
 # Initialize terraform directory
 cd $TERRAFORM_DIR
 
 # Create terraform.tfvars file from template with the PR number
+# Use alternative delimiter in sed to avoid issues with special characters
 sed -e "s/PR_NUMBER/$PR_NUMBER/g" \
-    -e "s/GENERATED_PASSWORD/$DB_PASSWORD/g" \
+    -e "s|GENERATED_PASSWORD|$DB_PASSWORD|g" \
     terraform.tfvars.template > terraform.tfvars
 
 # Initialize Terraform

@@ -14,8 +14,9 @@ cd $TERRAFORM_DIR
 
 # Create terraform.tfvars file from template with the PR number
 # Password value is not important for destroy
+# Use alternative delimiter in sed to avoid issues with special characters
 sed -e "s/PR_NUMBER/$PR_NUMBER/g" \
-    -e "s/GENERATED_PASSWORD/dummy-password/g" \
+    -e "s|GENERATED_PASSWORD|dummy-password|g" \
     terraform.tfvars.template > terraform.tfvars
 
 # Initialize Terraform
