@@ -113,7 +113,7 @@ echo "DB_CONNECTION_NAME=$DB_CONNECTION_NAME" >> "$GITHUB_ENV"
 echo "VPC_CONNECTOR_NAME=$VPC_CONNECTOR_NAME" >> "$GITHUB_ENV"
 echo "DB_PASSWORD=$DB_PASSWORD" >> "$GITHUB_ENV"
 echo "DB_USERNAME=pr_user" >> "$GITHUB_ENV"
-echo "DB_HOST=\"$DB_HOST_IP\"" >> "$GITHUB_ENV"
+echo "DB_HOST=$DB_HOST_IP" >> "$GITHUB_ENV"
 
 echo "db_instance_name=$DB_INSTANCE_NAME" >> "$GITHUB_OUTPUT"
 echo "db_name=$DB_NAME" >> "$GITHUB_OUTPUT"
@@ -121,6 +121,6 @@ echo "db_username=pr_user" >> "$GITHUB_OUTPUT"
 echo "db_password=$DB_PASSWORD" >> "$GITHUB_OUTPUT"
 echo "db_connection_name=$DB_CONNECTION_NAME" >> "$GITHUB_OUTPUT"
 echo "vpc_connector_name=$VPC_CONNECTOR_NAME" >> "$GITHUB_OUTPUT"
-echo "DB_HOST=\"$DB_HOST_IP\"" >> "$GITHUB_OUTPUT"
+echo "DB_HOST=$DB_HOST_IP"" >> "$GITHUB_OUTPUT"
 
 cd ..
