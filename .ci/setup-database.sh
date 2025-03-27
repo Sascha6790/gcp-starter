@@ -107,22 +107,20 @@ VPC_CONNECTOR_NAME=$(terraform output -raw vpc_connector_name)
 # Get DB Host IP
 DB_HOST_IP=$(get_sql_instance_ip "$PR_NUMBER" "$PROJECT_ID")
 
-# Output values as environment variables for GitHub Actions
-echo "DB_INSTANCE_NAME=$DB_INSTANCE_NAME" >> $GITHUB_ENV
-echo "DB_NAME=$DB_NAME" >> $GITHUB_ENV
-echo "DB_CONNECTION_NAME=$DB_CONNECTION_NAME" >> $GITHUB_ENV
-echo "VPC_CONNECTOR_NAME=$VPC_CONNECTOR_NAME" >> $GITHUB_ENV
-echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
-echo "DB_USERNAME=pr_user" >> $GITHUB_ENV
-echo "DB_HOST=$DB_HOST_IP" >> $GITHUB_ENV
+echo "DB_INSTANCE_NAME=$DB_INSTANCE_NAME" >> "$GITHUB_ENV"
+echo "DB_NAME=$DB_NAME" >> "$GITHUB_ENV"
+echo "DB_CONNECTION_NAME=$DB_CONNECTION_NAME" >> "$GITHUB_ENV"
+echo "VPC_CONNECTOR_NAME=$VPC_CONNECTOR_NAME" >> "$GITHUB_ENV"
+echo "DB_PASSWORD=$DB_PASSWORD" >> "$GITHUB_ENV"
+echo "DB_USERNAME=pr_user" >> "$GITHUB_ENV"
+echo "DB_HOST=$DB_HOST_IP" >> "$GITHUB_ENV"
 
-# Set secrets for the PR deployment
-echo "::set-output name=db_instance_name::$DB_INSTANCE_NAME"
-echo "::set-output name=db_name::$DB_NAME"
-echo "::set-output name=db_username::pr_user"
-echo "::set-output name=db_password::$DB_PASSWORD"
-echo "::set-output name=db_connection_name::$DB_CONNECTION_NAME"
-echo "::set-output name=vpc_connector_name::$VPC_CONNECTOR_NAME"
-echo "::set-output name=db_host::$DB_HOST_IP"
+echo "db_instance_name=$DB_INSTANCE_NAME" >> "$GITHUB_OUTPUT"
+echo "db_name=$DB_NAME" >> "$GITHUB_OUTPUT"
+echo "db_username=pr_user" >> "$GITHUB_OUTPUT"
+echo "db_password=$DB_PASSWORD" >> "$GITHUB_OUTPUT"
+echo "db_connection_name=$DB_CONNECTION_NAME" >> "$GITHUB_OUTPUT"
+echo "vpc_connector_name=$VPC_CONNECTOR_NAME" >> "$GITHUB_OUTPUT"
+echo "db_host=$DB_HOST_IP" >> "$GITHUB_OUTPUT"
 
 cd ..
