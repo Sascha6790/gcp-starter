@@ -76,7 +76,7 @@ get_sql_instance_ip() {
   # Try to get the private IP address of the SQL instance
   local IP=$(gcloud sql instances describe "pr-${PR_NUMBER}-postgres" \
     --project="${PROJECT_ID}" \
-    --format="value(ipAddresses[0].ipAddress)")
+    --format="get(ipAddresses[0].ipAddress)")
 
   if [ -z "$IP" ]; then
     echo "WARNING: Could not find private IP for SQL instance, falling back to instance name"
