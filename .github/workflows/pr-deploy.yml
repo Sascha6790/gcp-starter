@@ -93,6 +93,8 @@ jobs:
     name: Build and Push Frontend Preview Image
     needs: [validate]
     runs-on: ubuntu-latest
+    outputs:
+      short_sha: ${{ steps.sha.outputs.short_sha }}
 
     steps:
       - name: Checkout Repository
