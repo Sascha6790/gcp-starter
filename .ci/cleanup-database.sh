@@ -6,7 +6,7 @@ set -e
 
 # Get parameters from environment if available, otherwise use defaults
 PR_NUMBER=$1
-PROJECT_ID=${GCP_PROJECT_ID:-"qualified-gist-454616-m5"}
+PROJECT_ID="qualified-gist-454616-m5"
 REGION=${GCP_REGION:-"europe-west3"}
 TERRAFORM_DIR=".terraform"
 
