@@ -1,0 +1,55 @@
+name: 'Cleanup PR Database'
+description: 'Cleans up PostgreSQL database and related resources for PR preview environments'
+inputs:
+  pr-number:
+    description: 'The PR number'
+    required: true
+  project-id:
+    description: 'GCP project ID'
+    required: true
+  region:
+    description: 'GCP region'
+    required: true
+    default: 'europe-west3'
+  service-account:
+    description: 'Service account email for GCP authentication'
+    required: true
+  terraform-dir:
+    description: 'Directory containing Terraform files'
+    required: true
+    default: '.terraform'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Create terraform.tfvars file
+      shell: bash
+      run: |
+        # Password value is not important for destroy
+        cd ${{ inputs.terraform-dir }}
+        sed -e "s/PR_NUMBER/${{ inputs.pr-number }}/g" \
+            -e "s|GENERATED_PASSWORD|dummy-password|g" \
+            terraform.tfvars.template > terraform.tfvars
+
+    - name: Initialize Terraform
+      shell: bash
+      run: |
+        cd ${{ inputs.terraform-dir }}
+        terraform init
+
+    - name: Import Resources
+      shell: bash
+      run: |
+        node ${{ github.action_path }}/../common/import.js \
+          --pr-number="${{ inputs.pr-number }}" \
+          --project-id="${{ inputs.project-id }}" \
+          --region="${{ inputs.region }}" \
+          --db-password="dummy-password" \
+          --terraform-dir="${{ inputs.terraform-dir }}" \
+          --import-resources
+
+    - name: Destroy Terraform Resources
+      shell: bash
+      run: |
+        cd ${{ inputs.terraform-dir }}
+        terraform destroy -auto-approve
