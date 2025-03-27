@@ -106,6 +106,7 @@ VPC_CONNECTOR_NAME=$(terraform output -raw vpc_connector_name)
 
 # Get DB Host IP
 DB_HOST_IP=$(get_sql_instance_ip "$PR_NUMBER" "$PROJECT_ID") | grep -Eo '([0-9]{1,3}\.){3}[0-9]{1,3}' | head -n1
+DB_HOST=$DB_HOST_IP
 
 echo "DB_INSTANCE_NAME=$DB_INSTANCE_NAME" >> "$GITHUB_ENV"
 echo "DB_NAME=$DB_NAME" >> "$GITHUB_ENV"
@@ -121,6 +122,6 @@ echo "db_username=pr_user" >> "$GITHUB_OUTPUT"
 echo "db_password=$DB_PASSWORD" >> "$GITHUB_OUTPUT"
 echo "db_connection_name=$DB_CONNECTION_NAME" >> "$GITHUB_OUTPUT"
 echo "vpc_connector_name=$VPC_CONNECTOR_NAME" >> "$GITHUB_OUTPUT"
-echo "DB_HOST=$DB_HOST_IP" >> "$GITHUB_OUTPUT"
+echo "db_host=$DB_HOST_IP" >> "$GITHUB_OUTPUT"
 
 cd ..
