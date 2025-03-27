@@ -116,7 +116,7 @@ jobs:
 
       - name: Get Short SHA
         id: sha
-        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
 
       - name: Extract metadata for Docker
         id: meta
@@ -215,7 +215,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: frontend-${{ steps.preview-id.outputs.id }}
-          image: ${{ env.REGISTRY_GCP }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ steps.preview-id.outputs.id }}
+          image: ${{ env.REGISTRY_GCP }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ steps.preview-id.outputs.id }}-${{ needs.build-and-push-frontend.outputs.short_sha }}
           region: ${{ vars.GCP_REGION }}
           flags: |
             --allow-unauthenticated
@@ -257,7 +257,7 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: backend-${{ steps.preview-id.outputs.id }}
-          image: ${{ env.REGISTRY_GCP }}/${{ env.BACKEND_IMAGE_NAME }}:${{ steps.preview-id.outputs.id }}
+          image: ${{ env.REGISTRY_GCP }}/${{ env.BACKEND_IMAGE_NAME }}:${{ steps.preview-id.outputs.id }}-${{ needs.build-and-push-frontend.outputs.short_sha }}
           region: ${{ vars.GCP_REGION }}
           flags: |
             --allow-unauthenticated
