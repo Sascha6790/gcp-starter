@@ -40,17 +40,19 @@ resource "google_service_networking_connection" "private_vpc_connection" {
 
 resource "google_sql_database_instance" "postgres_instance" {
   name             = "pr-${var.pr_number}-postgres"
-  database_version = "POSTGRES_14"
+  database_version = "POSTGRES_17"
   region           = var.region
-  
+  deletion_protection = false
+
   depends_on = [google_service_networking_connection.private_vpc_connection]
 
   settings {
     tier = "db-f1-micro"
     disk_size = 10
+    edition = "ENTERPRISE"
 
     availability_type = "ZONAL"
-    
+
     backup_configuration {
       enabled = false
     }
