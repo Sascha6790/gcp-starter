@@ -33,8 +33,35 @@ env:
   NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
 
 jobs:
+  validate:
+    name: Validate Code (Lint, Test, Build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - name: Install Dependencies
+        run: npm ci --legacy-peer-deps
+      
+      - name: Install Playwright
+        run: npx playwright install --with-deps
+      
+      - name: Set SHA for Nx Affected Commands
+        uses: nrwl/nx-set-shas@v4
+      
+      - name: Run Affected Lint, Test, Build, E2E
+        run: npx nx affected -t lint test build e2e
   build-and-push-frontend:
     name: Build and Push Frontend Docker Image
+    needs: [validate]
     runs-on: ubuntu-latest
     outputs:
       short_sha: ${{ steps.sha.outputs.short_sha }}
@@ -82,6 +109,7 @@ jobs:
 
   build-and-push-backend:
     name: Build and Push Backend Docker Image
+    needs: [validate]
     runs-on: ubuntu-latest
 
     steps:
