@@ -123,4 +123,14 @@ echo "db_connection_name=$DB_CONNECTION_NAME" >> "$GITHUB_OUTPUT"
 echo "vpc_connector_name=$VPC_CONNECTOR_NAME" >> "$GITHUB_OUTPUT"
 echo "db_host=$DB_HOST_IP" >> "$GITHUB_OUTPUT"
 
+echo "Setting GitHub environment variables and outputs..."
+
+echo "DB_INSTANCE_NAME: $DB_INSTANCE_NAME"
+echo "DB_NAME: $DB_NAME"
+echo "DB_CONNECTION_NAME: $DB_CONNECTION_NAME"
+echo "VPC_CONNECTOR_NAME: $VPC_CONNECTOR_NAME"
+echo "DB_USERNAME: pr_user"
+echo "DB_HOST: $DB_HOST_IP"
+
+
 cd ..
