@@ -9,20 +9,6 @@ PROJECT_ID="qualified-gist-454616-m5"
 REGION="europe-west3"
 TERRAFORM_DIR=".terraform"
 
-# Debug Google credentials
-echo "INFO: Using Google credentials from: $GOOGLE_APPLICATION_CREDENTIALS"
-if [ -z "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
-  echo "ERROR: GOOGLE_APPLICATION_CREDENTIALS is not set"
-  exit 1
-elif [ ! -f "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
-  echo "ERROR: Credentials file does not exist: $GOOGLE_APPLICATION_CREDENTIALS"
-  exit 1
-else
-  echo "INFO: Credentials file exists"
-  # Print service account email without showing the actual key
-  grep -o '"client_email":"[^"]*"' "$GOOGLE_APPLICATION_CREDENTIALS" || echo "WARNING: Could not extract client_email from credentials"
-fi
-
 # Generate random password (alphanumeric only to avoid sed issues)
 DB_PASSWORD=$(openssl rand -hex 12)
 
@@ -35,12 +21,51 @@ sed -e "s/PR_NUMBER/$PR_NUMBER/g" \
     -e "s|GENERATED_PASSWORD|$DB_PASSWORD|g" \
     terraform.tfvars.template > terraform.tfvars
 
-# Initialize Terraform with special import mode
+# Initialize Terraform
 terraform init
+
+# Import Resources Function
+import_resources() {
+  local resources=(
+    "google_compute_network.pr_vpc_network projects/${PROJECT_ID}/global/networks/pr-${PR_NUMBER}-vpc"
+    "google_compute_subnetwork.pr_subnet projects/${PROJECT_ID}/regions/${REGION}/subnetworks/pr-${PR_NUMBER}-subnet"
+    "google_compute_global_address.private_ip_address pr-${PR_NUMBER}-db-ip"
+    "google_service_networking_connection.private_vpc_connection ${PROJECT_ID}/${REGION}/pr-${PR_NUMBER}-vpc"
+    "google_sql_database_instance.postgres_instance pr-${PR_NUMBER}-postgres"
+    "google_sql_database.database pr-${PR_NUMBER}-postgres/pr_${PR_NUMBER}_db"
+    "google_sql_user.users pr-${PR_NUMBER}-postgres/pr_user"
+    "google_vpc_access_connector.connector pr-${PR_NUMBER}-vpc-connector"
+    "google_project_service.vpcaccess_api vpcaccess.googleapis.com"
+    "google_project_service.servicenetworking_api servicenetworking.googleapis.com"
+  )
+
+  echo "Starting import of existing resources..."
+
+  for resource_info in "${resources[@]}"; do
+    read -r resource id <<< "$resource_info"
+
+    echo "Attempting to import: $resource $id"
+
+    # Attempt import with error handling
+    if terraform import \
+      -var="project_id=${PROJECT_ID}" \
+      -var="pr_number=${PR_NUMBER}" \
+      -var="db_password=${DB_PASSWORD}" \
+      -var="region=${REGION}" \
+      "$resource" "$id"; then
+      echo "Successfully imported $resource"
+    else
+      echo "WARNING: Could not import $resource. Continuing..."
+    fi
+  done
+}
+
+# Import existing resources
+import_resources
 
 # First try a plan to see what happens
 terraform plan -out=tf.plan || {
-  echo "Terraform plan failed. This might be because resources already exist."
+  echo "Terraform plan failed. This might be because of configuration issues."
   echo "Attempting to continue with apply anyway due to lifecycle.ignore_changes settings."
 }
 
