@@ -55,7 +55,7 @@ jobs:
     name: Setup Postgres Database
     runs-on: ubuntu-latest
     outputs:
-      db_host: ${{ steps.setup-db.outputs.db_instance_name }}
+      db_host: ${{ steps.setup-db.outputs.db_host }}
       db_name: ${{ steps.setup-db.outputs.db_name }}
       db_username: ${{ steps.setup-db.outputs.db_username }}
       db_password: ${{ steps.setup-db.outputs.db_password }}
