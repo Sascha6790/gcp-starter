@@ -34,8 +34,17 @@ sed -e "s/PR_NUMBER/$PR_NUMBER/g" \
     -e "s|GENERATED_PASSWORD|dummy-password|g" \
     terraform.tfvars.template > terraform.tfvars
 
-# Import shared functions
-source $(dirname "$0")/terraform-common.sh
+# Import shared functions - mit absolutem Pfad, falls relativ nicht funktioniert
+if [ -f "$(dirname "$0")/terraform-common.sh" ]; then
+  echo "Lade terraform-common.sh aus relativem Pfad"
+  source "$(dirname "$0")/terraform-common.sh"
+elif [ -f "$PWD/.ci/terraform-common.sh" ]; then
+  echo "Lade terraform-common.sh aus .ci-Verzeichnis"
+  source "$PWD/.ci/terraform-common.sh"
+else
+  echo "FEHLER: terraform-common.sh konnte nicht gefunden werden"
+  exit 1
+fi
 
 # Initialize Terraform
 terraform init

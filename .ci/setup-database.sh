@@ -25,8 +25,17 @@ sed -e "s/PR_NUMBER/$PR_NUMBER/g" \
 # Initialize Terraform
 terraform init
 
-# Import shared functions
-source $(dirname "$0")/terraform-common.sh
+# Import shared functions - mit absolutem Pfad, falls relativ nicht funktioniert
+if [ -f "$(dirname "$0")/terraform-common.sh" ]; then
+  echo "Lade terraform-common.sh aus relativem Pfad"
+  source "$(dirname "$0")/terraform-common.sh"
+elif [ -f "$PWD/.ci/terraform-common.sh" ]; then
+  echo "Lade terraform-common.sh aus .ci-Verzeichnis"
+  source "$PWD/.ci/terraform-common.sh"
+else
+  echo "FEHLER: terraform-common.sh konnte nicht gefunden werden"
+  exit 1
+fi
 
 # Import existing resources
 import_terraform_resources "$PR_NUMBER" "$PROJECT_ID" "$REGION" "$DB_PASSWORD"
