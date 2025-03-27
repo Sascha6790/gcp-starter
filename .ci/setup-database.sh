@@ -36,7 +36,7 @@ import_terraform_resources() {
     "google_compute_network.pr_vpc_network projects/${PROJECT_ID}/global/networks/pr-${PR_NUMBER}-vpc"
     "google_compute_subnetwork.pr_subnet projects/${PROJECT_ID}/regions/${REGION}/subnetworks/pr-${PR_NUMBER}-subnet"
     "google_compute_global_address.private_ip_address projects/${PROJECT_ID}/global/addresses/pr-${PR_NUMBER}-db-ip"
-    "google_service_networking_connection.private_vpc_connection projects/${PROJECT_ID}/global/networks/pr-${PR_NUMBER}-vpc/servicenetworking.googleapis.com"
+    "google_service_networking_connection.private_vpc_connection projects/${PROJECT_ID}/global/networks/pr-${PR_NUMBER}-vpc:servicenetworking.googleapis.com"
     "google_sql_database_instance.postgres_instance pr-${PR_NUMBER}-postgres"
     "google_sql_database.database ${PROJECT_ID}/pr-${PR_NUMBER}-postgres/pr_${PR_NUMBER}_db"
     "google_sql_user.users ${PROJECT_ID}/pr-${PR_NUMBER}-postgres/pr_user"
