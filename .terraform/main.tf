@@ -79,7 +79,7 @@ resource "google_sql_database_instance" "postgres_instance" {
       private_network = google_compute_network.pr_vpc_network.id
     }
   }
-  
+
   lifecycle {
     ignore_changes = all
   }
@@ -94,6 +94,7 @@ resource "google_sql_user" "users" {
   name     = "pr_user"
   instance = google_sql_database_instance.postgres_instance.name
   password = var.db_password
+  depends_on = [google_sql_database.database]
 }
 
 resource "google_vpc_access_connector" "connector" {
