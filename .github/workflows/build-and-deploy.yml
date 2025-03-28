@@ -155,6 +155,43 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             APP_ENV=${{ github.event.inputs.environment || 'staging' }}
+  setup-database:
+    name: Setup Postgres Database
+    runs-on: ubuntu-latest
+    outputs:
+      db_host: ${{ steps.setup-db.outputs.db_host }}
+      db_name: ${{ steps.setup-db.outputs.db_name }}
+      db_username: ${{ steps.setup-db.outputs.db_username }}
+      db_password: ${{ steps.setup-db.outputs.db_password }}
+      db_connection_name: ${{ steps.setup-db.outputs.db_connection_name }}
+      vpc_connector: ${{ steps.setup-db.outputs.vpc_connector_name }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Google Cloud SDK
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCLOUD_CREDENTIALS_KEY }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+          export_environment_variables: true
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Setup Database
+        id: setup-db
+        run: |
+          chmod +x .ci/setup-database.sh
+          echo "Using Google Application Credentials: $GOOGLE_APPLICATION_CREDENTIALS"
+          # Verify credentials file exists
+          ls -la $GOOGLE_APPLICATION_CREDENTIALS || echo "Credentials file not found!"
+          .ci/setup-database.sh ${{ github.event.pull_request.number }}
 
   deploy-frontend:
     name: Deploy Frontend to Cloud Run
@@ -195,7 +232,7 @@ jobs:
 
   deploy-backend:
     name: Deploy Backend to Cloud Run
-    needs: [build-and-push-frontend, build-and-push-backend]
+    needs: [build-and-push-frontend, build-and-push-backend, setup-database]
     runs-on: ubuntu-latest
     environment: ${{ github.event.inputs.environment || 'staging' }}
 
@@ -224,7 +261,7 @@ jobs:
             --port=3000
             --memory=512Mi
             --cpu=1
-            --set-env-vars=NODE_ENV=${{ github.event.inputs.environment || 'production' }},FRONTEND_URL=https://frontend-${{ github.event.inputs.environment || 'staging' }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app
+            --set-env-vars=NODE_ENV=${{ github.event.inputs.environment || 'production' }},FRONTEND_URL=https://frontend-${{ github.event.inputs.environment || 'staging' }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app,DB_NAME=${{ needs.setup-database.outputs.db_name }},DB_USERNAME=${{ needs.setup-database.outputs.db_username }},DB_PASSWORD=${{ needs.setup-database.outputs.db_password }}
 
       - name: Show Output
         run: |

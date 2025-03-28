@@ -14,6 +14,26 @@ provider "google" {
   # or use the default ~/.config/gcloud/application_default_credentials.json
 }
 
+resource "google_project_service" "secretmanager_api" {
+  service = "secretmanager.googleapis.com"
+  disable_on_destroy = false
+}
+
+resource "google_secret_manager_secret" "db_password" {
+  secret_id = "pr-${var.pr_number}-db-password"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.secretmanager_api]
+}
+
+resource "google_secret_manager_secret_version" "db_password_version" {
+  secret      = google_secret_manager_secret.db_password.id
+  secret_data = var.db_password
+}
+
 resource "google_compute_network" "pr_vpc_network" {
   name                    = "pr-${var.pr_number}-vpc"
   auto_create_subnetworks = false
@@ -79,7 +99,7 @@ resource "google_sql_database_instance" "postgres_instance" {
       private_network = google_compute_network.pr_vpc_network.id
     }
   }
-  
+
   lifecycle {
     ignore_changes = all
   }
@@ -94,6 +114,7 @@ resource "google_sql_user" "users" {
   name     = "pr_user"
   instance = google_sql_database_instance.postgres_instance.name
   password = var.db_password
+  depends_on = [google_sql_database.database]
 }
 
 resource "google_vpc_access_connector" "connector" {
@@ -130,4 +151,9 @@ output "db_connection_name" {
 
 output "vpc_connector_name" {
   value = google_vpc_access_connector.connector.name
+}
+
+output "db_password_secret_name" {
+  value = google_secret_manager_secret.db_password.name
+  description = "PostgreSQL password"
 }
