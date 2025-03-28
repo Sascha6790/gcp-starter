@@ -37,7 +37,6 @@ sed -e "s/PR_NUMBER/$PR_NUMBER/g" \
 # Initialize Terraform
 terraform init
 
-# Import Resources Function
 import_terraform_resources() {
   local PR_NUMBER=$1
   local PROJECT_ID=$2
@@ -55,6 +54,9 @@ import_terraform_resources() {
     "google_vpc_access_connector.connector projects/${PROJECT_ID}/locations/${REGION}/connectors/pr-${PR_NUMBER}-vpc-connector"
     "google_project_service.vpcaccess_api ${PROJECT_ID}/vpcaccess.googleapis.com"
     "google_project_service.servicenetworking_api ${PROJECT_ID}/servicenetworking.googleapis.com"
+    "google_project_service.secretmanager_api ${PROJECT_ID}/secretmanager.googleapis.com"
+    "google_secret_manager_secret.db_password projects/${PROJECT_ID}/secrets/pr-${PR_NUMBER}-db-password"
+    "google_secret_manager_secret_version.db_password_version projects/${PROJECT_ID}/secrets/pr-${PR_NUMBER}-db-password/versions/1"
   )
 
   echo "Starting import of existing resources..."
