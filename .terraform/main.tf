@@ -114,9 +114,12 @@ resource "google_sql_user" "users" {
   name     = "pr_user"
   instance = google_sql_database_instance.postgres_instance.name
   password = var.db_password
-  depends_on = [google_sql_database.database]
-}
 
+  depends_on = [
+    google_sql_database_instance.postgres_instance,
+    google_sql_database.database,
+  ]
+}
 resource "google_vpc_access_connector" "connector" {
   name          = "pr-${var.pr_number}-vpc-connector"
   ip_cidr_range = "10.8.0.0/28"
