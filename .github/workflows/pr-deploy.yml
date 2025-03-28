@@ -97,6 +97,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       short_sha: ${{ steps.sha.outputs.short_sha }}
+      preview_id: ${{ steps.preview-id.outputs.id }}
 
     steps:
       - name: Checkout Repository
@@ -148,6 +149,9 @@ jobs:
     name: Build and Push Backend Preview Image
     needs: [validate]
     runs-on: ubuntu-latest
+    outputs:
+      short_sha: ${{ steps.sha.outputs.short_sha }}
+      preview_id: ${{ steps.preview-id.outputs.id }}
 
     steps:
       - name: Checkout Repository
@@ -201,9 +205,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Generate unique preview ID
-        id: preview-id
-        run: echo "id=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Set up Google Cloud SDK
         uses: google-github-actions/auth@v2
@@ -218,20 +221,20 @@ jobs:
         id: deploy-frontend
         uses: google-github-actions/deploy-cloudrun@v2
         with:
-          service: frontend-${{ steps.preview-id.outputs.id }}
-          image: ${{ env.REGISTRY_GCP }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ steps.preview-id.outputs.id }}-${{ needs.build-and-push-frontend.outputs.short_sha }}
+          service: frontend-pr-${{ github.event.pull_request.number }}
+          image: ${{ env.REGISTRY_GCP }}/${{ env.FRONTEND_IMAGE_NAME }}:pr-${{ github.event.pull_request.number }}-${{ needs.build-and-push-frontend.outputs.short_sha }}
           region: ${{ env.GCP_REGION }}
           flags: |
             --allow-unauthenticated
             --port=4000
             --memory=512Mi
             --cpu=1
-            --set-env-vars=NODE_ENV=staging,BACKEND_API_URL=https://backend-${{ steps.preview-id.outputs.id }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app
+            --set-env-vars=NODE_ENV=staging,BACKEND_API_URL=https://backend-pr-${{ github.event.pull_request.number }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app
             --tag=pr-preview
 
       - name: Allow HTTP Access for Frontend
         run: |
-          gcloud run services add-iam-policy-binding frontend-${{ steps.preview-id.outputs.id }} \
+          gcloud run services add-iam-policy-binding frontend-pr-${{ github.event.pull_request.number }} \
             --member="allUsers" \
             --role="roles/run.invoker" \
             --region=${{ env.GCP_REGION }} \
@@ -243,9 +246,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Generate unique preview ID
-        id: preview-id
-        run: echo "id=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
       - name: Set up Google Cloud SDK
         uses: google-github-actions/auth@v2
@@ -260,21 +262,21 @@ jobs:
         id: deploy-backend
         uses: google-github-actions/deploy-cloudrun@v2
         with:
-          service: backend-${{ steps.preview-id.outputs.id }}
-          image: ${{ env.REGISTRY_GCP }}/${{ env.BACKEND_IMAGE_NAME }}:${{ steps.preview-id.outputs.id }}-${{ needs.build-and-push-frontend.outputs.short_sha }}
+          service: backend-pr-${{ github.event.pull_request.number }}
+          image: ${{ env.REGISTRY_GCP }}/${{ env.BACKEND_IMAGE_NAME }}:pr-${{ github.event.pull_request.number }}-${{ needs.build-and-push-frontend.outputs.short_sha }}
           region: ${{ env.GCP_REGION }}
           flags: |
             --allow-unauthenticated
             --port=3000
             --memory=512Mi
             --cpu=1
-            --set-env-vars=NODE_ENV=preview,PR_NUMBER=${{ github.event.pull_request.number }},FRONTEND_URL=https://frontend-${{ steps.preview-id.outputs.id }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app,DB_HOST=${{ needs.setup-database.outputs.db_host }},DB_NAME=${{ needs.setup-database.outputs.db_name }},DB_USERNAME=${{ needs.setup-database.outputs.db_username }},DB_PASSWORD=${{ needs.setup-database.outputs.db_password }}
+            --set-env-vars=NODE_ENV=preview,PR_NUMBER=${{ github.event.pull_request.number }},FRONTEND_URL=https://frontend-pr-${{ github.event.pull_request.number }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app,DB_HOST=${{ needs.setup-database.outputs.db_host }},DB_NAME=${{ needs.setup-database.outputs.db_name }},DB_USERNAME=${{ needs.setup-database.outputs.db_username }},DB_PASSWORD=${{ needs.setup-database.outputs.db_password }}
             --tag=pr-preview
             --vpc-connector=${{ needs.setup-database.outputs.vpc_connector }}
 
       - name: Allow HTTP Access for Backend
         run: |
-          gcloud run services add-iam-policy-binding backend-${{ steps.preview-id.outputs.id }} \
+          gcloud run services add-iam-policy-binding backend-pr-${{ github.event.pull_request.number }} \
             --member="allUsers" \
             --role="roles/run.invoker" \
             --region=${{ env.GCP_REGION }} \
@@ -286,16 +288,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Generate unique preview ID
-        id: preview-id
-        run: echo "id=pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
-
       - name: Calculate service URLs
         id: urls
         run: |
-          echo "frontend_url=https://frontend-${{ steps.preview-id.outputs.id }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app" >> $GITHUB_OUTPUT
-          echo "backend_url=https://backend-${{ steps.preview-id.outputs.id }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app" >> $GITHUB_OUTPUT
-          echo "items_url=https://frontend-${{ steps.preview-id.outputs.id }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app/items" >> $GITHUB_OUTPUT
+          echo "frontend_url=https://frontend-pr-${{ github.event.pull_request.number }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app" >> $GITHUB_OUTPUT
+          echo "backend_url=https://backend-pr-${{ github.event.pull_request.number }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app" >> $GITHUB_OUTPUT
+          echo "items_url=https://frontend-pr-${{ github.event.pull_request.number }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app/items" >> $GITHUB_OUTPUT
 
       - name: Comment on PR
         uses: actions/github-script@v7
