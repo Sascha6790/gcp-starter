@@ -23,7 +23,7 @@ resource "google_secret_manager_secret" "db_password" {
   secret_id = "pr-${var.pr_number}-db-password"
 
   replication {
-    automatic = true
+    auto {}
   }
 
   depends_on = [google_project_service.secretmanager_api]
