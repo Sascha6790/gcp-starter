@@ -1,0 +1,4 @@
+project_id = "qualified-gist-454616-m5"
+region     = "europe-west3"
+pr_number  = "PR_NUMBER"
+db_password = "GENERATED_PASSWORD"

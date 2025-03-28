@@ -1,0 +1,73 @@
+<div class="items-container">
+  <h2>Items Management</h2>
+  
+  <div class="form-container">
+    <h3>{{ editingItem ? 'Edit Item' : 'Add New Item' }}</h3>
+    <form [formGroup]="itemForm" (ngSubmit)="onSubmit()">
+      <div class="form-group">
+        <label for="name">Name:</label>
+        <input id="name" type="text" formControlName="name" placeholder="Enter item name">
+        <div class="error" *ngIf="itemForm.get('name')?.invalid && itemForm.get('name')?.touched">
+          Name is required and must be at least 3 characters
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label for="description">Description:</label>
+        <textarea id="description" formControlName="description" placeholder="Enter item description" rows="3"></textarea>
+        <div class="error" *ngIf="itemForm.get('description')?.invalid && itemForm.get('description')?.touched">
+          Description is required
+        </div>
+      </div>
+      
+      <div class="form-group checkbox">
+        <label>
+          <input type="checkbox" formControlName="completed">
+          Completed
+        </label>
+      </div>
+      
+      <div class="form-actions">
+        <button type="submit" [disabled]="itemForm.invalid || loading">
+          {{ editingItem ? 'Update' : 'Add' }} Item
+        </button>
+        <button type="button" *ngIf="editingItem" (click)="resetForm()">Cancel</button>
+      </div>
+    </form>
+  </div>
+  
+  <div class="error-message" *ngIf="error">{{ error }}</div>
+  
+  <div class="loading" *ngIf="loading">Loading...</div>
+  
+  <div class="items-list">
+    <h3>Items List</h3>
+    <button (click)="loadItems()" [disabled]="loading">Refresh List</button>
+    
+    <div *ngIf="items.length === 0 && !loading" class="empty-state">
+      No items found. Add your first item above!
+    </div>
+    
+    <ul>
+      <li *ngFor="let item of items" [class.completed]="item.completed">
+        <div class="item-header">
+          <h4>{{ item.name }}</h4>
+          <div class="item-actions">
+            <button class="edit-btn" (click)="editItem(item)">Edit</button>
+            <button class="delete-btn" (click)="deleteItem(item.id)">Delete</button>
+          </div>
+        </div>
+        <p class="item-description">{{ item.description }}</p>
+        <div class="item-meta">
+          <div class="status" role="button" tabindex="0" (click)="toggleComplete(item)" (keydown.enter)="toggleComplete(item)" (keydown.space)="toggleComplete(item)">
+            <span class="status-indicator" [class.completed]="item.completed"></span>
+            {{ item.completed ? 'Completed' : 'Pending' }}
+          </div>
+          <div class="date">
+            {{ item.createdAt | date:'short' }}
+          </div>
+        </div>
+      </li>
+    </ul>
+  </div>
+</div>

@@ -17,14 +17,86 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  REGISTRY_GCP: europe-west3-docker.pkg.dev/qualified-gist-454616-m5/ghcr
-  FRONTEND_IMAGE_NAME: sascha6790/frontend-preview #we can't use github.repository because docker requires a lowercase name
-  BACKEND_IMAGE_NAME: sascha6790/backend-preview
+  REGISTRY_GCP: europe-west3-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/ghcr
+  FRONTEND_IMAGE_NAME: ${{ vars.REPOSITORY_OWNER }}/frontend-preview # REPOSITORY_OWNER is the lower case version of github.repository / github.reository_owner
+  BACKEND_IMAGE_NAME: ${{ vars.REPOSITORY_OWNER }}/backend-preview
+  GCP_PROJECT_NUMBER: ${{ vars.GCP_PROJECT_NUMBER }} # 325633707936
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }} # qualified-gist-454616-m5
+  GCP_REGION: ${{ vars.GCP_REGION }} # europe-west3
+  GCP_SERVICE_ACCOUNT: ${{ vars.GCP_SERVICE_ACCOUNT }} # github@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com
 
 jobs:
+  validate:
+    name: Validate Code (Lint, Test, Build)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Playwright
+        run: npx playwright install --with-deps
+
+      - name: Set SHA for Nx Affected Commands
+        uses: nrwl/nx-set-shas@v4
+
+      - name: Run Affected Lint, Test, Build, E2E
+        run: npx nx affected -t lint test build e2e --base=origin/main
+
+  setup-database:
+    name: Setup Postgres Database
+    runs-on: ubuntu-latest
+    outputs:
+      db_host: ${{ steps.setup-db.outputs.db_host }}
+      db_name: ${{ steps.setup-db.outputs.db_name }}
+      db_username: ${{ steps.setup-db.outputs.db_username }}
+      db_password: ${{ steps.setup-db.outputs.db_password }}
+      db_connection_name: ${{ steps.setup-db.outputs.db_connection_name }}
+      vpc_connector: ${{ steps.setup-db.outputs.vpc_connector_name }}
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Google Cloud SDK
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCLOUD_CREDENTIALS_KEY }}
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
+          export_environment_variables: true
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Setup Database
+        id: setup-db
+        run: |
+          chmod +x .ci/setup-database.sh
+          echo "Using Google Application Credentials: $GOOGLE_APPLICATION_CREDENTIALS"
+          # Verify credentials file exists
+          ls -la $GOOGLE_APPLICATION_CREDENTIALS || echo "Credentials file not found!"
+          .ci/setup-database.sh ${{ github.event.pull_request.number }}
+
   build-and-push-frontend:
     name: Build and Push Frontend Preview Image
+    needs: [validate]
     runs-on: ubuntu-latest
+    outputs:
+      short_sha: ${{ steps.sha.outputs.short_sha }}
 
     steps:
       - name: Checkout Repository
@@ -48,7 +120,7 @@ jobs:
 
       - name: Get Short SHA
         id: sha
-        run: echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+        run: echo "short_sha=$(git rev-parse --short=7 HEAD)" >> $GITHUB_OUTPUT
 
       - name: Extract metadata for Docker
         id: meta
@@ -74,6 +146,7 @@ jobs:
 
   build-and-push-backend:
     name: Build and Push Backend Preview Image
+    needs: [validate]
     runs-on: ubuntu-latest
 
     steps:
@@ -136,7 +209,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCLOUD_CREDENTIALS_KEY }}
-          service_account: github@qualified-gist-454616-m5.iam.gserviceaccount.com
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -146,14 +219,14 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: frontend-${{ steps.preview-id.outputs.id }}
-          image: ${{ env.REGISTRY_GCP }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ steps.preview-id.outputs.id }}
-          region: ${{ vars.GCP_REGION }}
+          image: ${{ env.REGISTRY_GCP }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ steps.preview-id.outputs.id }}-${{ needs.build-and-push-frontend.outputs.short_sha }}
+          region: ${{ env.GCP_REGION }}
           flags: |
             --allow-unauthenticated
             --port=4000
             --memory=512Mi
             --cpu=1
-            --set-env-vars=NODE_ENV=staging,BACKEND_API_URL=https://backend-${{ steps.preview-id.outputs.id }}-${{ vars.GCP_PROJECT_ID }}.${{ vars.GCP_REGION }}.run.app
+            --set-env-vars=NODE_ENV=staging,BACKEND_API_URL=https://backend-${{ steps.preview-id.outputs.id }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app
             --tag=pr-preview
 
       - name: Allow HTTP Access for Frontend
@@ -161,12 +234,12 @@ jobs:
           gcloud run services add-iam-policy-binding frontend-${{ steps.preview-id.outputs.id }} \
             --member="allUsers" \
             --role="roles/run.invoker" \
-            --region=${{ vars.GCP_REGION }} \
-            --project=qualified-gist-454616-m5
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }}
 
   deploy-backend-preview:
     name: Deploy Backend Preview Environment
-    needs: [build-and-push-frontend, build-and-push-backend]
+    needs: [build-and-push-frontend, build-and-push-backend, setup-database]
     runs-on: ubuntu-latest
 
     steps:
@@ -178,7 +251,7 @@ jobs:
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCLOUD_CREDENTIALS_KEY }}
-          service_account: github@qualified-gist-454616-m5.iam.gserviceaccount.com
+          service_account: ${{ env.GCP_SERVICE_ACCOUNT }}
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -188,23 +261,24 @@ jobs:
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: backend-${{ steps.preview-id.outputs.id }}
-          image: ${{ env.REGISTRY_GCP }}/${{ env.BACKEND_IMAGE_NAME }}:${{ steps.preview-id.outputs.id }}
-          region: ${{ vars.GCP_REGION }}
+          image: ${{ env.REGISTRY_GCP }}/${{ env.BACKEND_IMAGE_NAME }}:${{ steps.preview-id.outputs.id }}-${{ needs.build-and-push-frontend.outputs.short_sha }}
+          region: ${{ env.GCP_REGION }}
           flags: |
             --allow-unauthenticated
             --port=3000
             --memory=512Mi
             --cpu=1
-            --set-env-vars=NODE_ENV=preview,PR_NUMBER=${{ github.event.pull_request.number }},FRONTEND_URL=https://frontend-${{ steps.preview-id.outputs.id }}-${{ vars.GCP_PROJECT_ID }}.${{ vars.GCP_REGION }}.run.app
+            --set-env-vars=NODE_ENV=preview,PR_NUMBER=${{ github.event.pull_request.number }},FRONTEND_URL=https://frontend-${{ steps.preview-id.outputs.id }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app,DB_HOST=${{ needs.setup-database.outputs.db_host }},DB_NAME=${{ needs.setup-database.outputs.db_name }},DB_USERNAME=${{ needs.setup-database.outputs.db_username }},DB_PASSWORD=${{ needs.setup-database.outputs.db_password }}
             --tag=pr-preview
+            --vpc-connector=${{ needs.setup-database.outputs.vpc_connector }}
 
       - name: Allow HTTP Access for Backend
         run: |
           gcloud run services add-iam-policy-binding backend-${{ steps.preview-id.outputs.id }} \
             --member="allUsers" \
             --role="roles/run.invoker" \
-            --region=${{ vars.GCP_REGION }} \
-            --project=qualified-gist-454616-m5
+            --region=${{ env.GCP_REGION }} \
+            --project=${{ env.GCP_PROJECT_ID }}
 
   comment-on-pr:
     name: Comment PR with Preview URLs
@@ -219,8 +293,9 @@ jobs:
       - name: Calculate service URLs
         id: urls
         run: |
-          echo "frontend_url=https://frontend-${{ steps.preview-id.outputs.id }}-${{ vars.GCP_PROJECT_ID }}.${{ vars.GCP_REGION }}.run.app" >> $GITHUB_OUTPUT
-          echo "backend_url=https://backend-${{ steps.preview-id.outputs.id }}-${{ vars.GCP_PROJECT_ID }}.${{ vars.GCP_REGION }}.run.app" >> $GITHUB_OUTPUT
+          echo "frontend_url=https://frontend-${{ steps.preview-id.outputs.id }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app" >> $GITHUB_OUTPUT
+          echo "backend_url=https://backend-${{ steps.preview-id.outputs.id }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app" >> $GITHUB_OUTPUT
+          echo "items_url=https://frontend-${{ steps.preview-id.outputs.id }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app/items" >> $GITHUB_OUTPUT
 
       - name: Comment on PR
         uses: actions/github-script@v7
@@ -230,6 +305,7 @@ jobs:
             const { owner, repo, number } = context.issue;
             const frontendUrl = "${{ steps.urls.outputs.frontend_url }}";
             const backendUrl = "${{ steps.urls.outputs.backend_url }}";
+            const itemsUrl = "${{ steps.urls.outputs.items_url }}";
 
             const body = `## 🚀 Preview Environment Deployed
 
@@ -238,6 +314,7 @@ jobs:
             **Frontend Preview:** [${frontendUrl}](${frontendUrl})
             **Backend API Preview:** [${backendUrl}](${backendUrl})
             **API Test Endpoint:** [${backendUrl}/api/test](${backendUrl}/api/test)
+            **Items Management:** [${itemsUrl}](${itemsUrl})
 
             These environments will be automatically updated when you push new changes to this PR.`;
 
