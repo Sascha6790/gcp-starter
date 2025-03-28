@@ -27,10 +27,13 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  REGISTRY_GCP: europe-west3-docker.pkg.dev/qualified-gist-454616-m5/ghcr
-  FRONTEND_IMAGE_NAME: sascha6790/frontend
-  BACKEND_IMAGE_NAME: sascha6790/backend
+  REGISTRY_GCP: europe-west3-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/ghcr
+  FRONTEND_IMAGE_NAME: ${{ vars.REPOSITORY_OWNER }}/frontend
+  BACKEND_IMAGE_NAME: ${{ vars.REPOSITORY_OWNER }}/backend
   NX_CLOUD_ACCESS_TOKEN: ${{ secrets.NX_CLOUD_ACCESS_TOKEN }}
+  GCP_PROJECT_NUMBER: ${{ vars.GCP_PROJECT_NUMBER }} # 325633707936
+  GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }} # qualified-gist-454616-m5
+  GCP_REGION: ${{ vars.GCP_REGION }} # europe-west3
 
 jobs:
   validate:
@@ -167,7 +170,7 @@ jobs:
         uses: 'google-github-actions/auth@v2'
         with:
           credentials_json: ${{ secrets.GCLOUD_CREDENTIALS_KEY }}
-          service_account: 'github@qualified-gist-454616-m5.iam.gserviceaccount.com'
+          service_account: 'github@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com'
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -178,19 +181,18 @@ jobs:
         with:
           service: frontend-${{ github.event.inputs.environment || 'staging' }}
           image: ${{ env.REGISTRY_GCP }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ github.event.inputs.environment || 'staging' }}-${{ needs.build-and-push-frontend.outputs.short_sha }}
-          region: ${{ vars.GCP_REGION }}
+          region: ${{ env.GCP_REGION }}
           flags: |
             --allow-unauthenticated
             --port=4000
             --memory=512Mi
             --cpu=1
-            --set-env-vars=NODE_ENV=${{ github.event.inputs.environment || 'production' }},BACKEND_API_URL=https://backend-${{ github.event.inputs.environment || 'staging' }}-${{ vars.GCP_PROJECT_ID }}.${{ vars.GCP_REGION }}.run.app
+            --set-env-vars=NODE_ENV=${{ github.event.inputs.environment || 'production' }},BACKEND_API_URL=https://backend-${{ github.event.inputs.environment || 'staging' }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app
 
       - name: Show Output
         run: |
           echo "Frontend deployed to ${{ steps.deploy-frontend.outputs.url }}"
 
-  deploy-backend:
   deploy-backend:
     name: Deploy Backend to Cloud Run
     needs: [build-and-push-frontend, build-and-push-backend]
@@ -205,7 +207,7 @@ jobs:
         uses: 'google-github-actions/auth@v2'
         with:
           credentials_json: ${{ secrets.GCLOUD_CREDENTIALS_KEY }}
-          service_account: 'github@qualified-gist-454616-m5.iam.gserviceaccount.com'
+          service_account: 'github@${{ env.GCP_PROJECT_ID }}.iam.gserviceaccount.com'
 
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
@@ -216,13 +218,13 @@ jobs:
         with:
           service: backend-${{ github.event.inputs.environment || 'staging' }}
           image: ${{ env.REGISTRY_GCP }}/${{ env.BACKEND_IMAGE_NAME }}:${{ github.event.inputs.environment || 'staging' }}-${{ needs.build-and-push-frontend.outputs.short_sha }}
-          region: ${{ vars.GCP_REGION }}
+          region: ${{ env.GCP_REGION }}
           flags: |
             --allow-unauthenticated
             --port=3000
             --memory=512Mi
             --cpu=1
-            --set-env-vars=NODE_ENV=${{ github.event.inputs.environment || 'production' }},FRONTEND_URL=https://frontend-${{ github.event.inputs.environment || 'staging' }}-${{ vars.GCP_PROJECT_ID }}.${{ vars.GCP_REGION }}.run.app
+            --set-env-vars=NODE_ENV=${{ github.event.inputs.environment || 'production' }},FRONTEND_URL=https://frontend-${{ github.event.inputs.environment || 'staging' }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app
 
       - name: Show Output
         run: |
