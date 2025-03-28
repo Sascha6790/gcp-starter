@@ -119,7 +119,12 @@ resource "google_sql_user" "users" {
     google_sql_database_instance.postgres_instance,
     google_sql_database.database,
   ]
+
+  lifecycle {
+    ignore_changes = all
+  }
 }
+
 resource "google_vpc_access_connector" "connector" {
   name          = "pr-${var.pr_number}-vpc-connector"
   ip_cidr_range = "10.8.0.0/28"
