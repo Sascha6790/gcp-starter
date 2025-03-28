@@ -261,7 +261,7 @@ jobs:
             --port=3000
             --memory=512Mi
             --cpu=1
-            --set-env-vars=NODE_ENV=${{ github.event.inputs.environment || 'production' }},FRONTEND_URL=https://frontend-${{ github.event.inputs.environment || 'staging' }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app,DB_NAME=${{ needs.setup-database.outputs.db_name }},DB_USERNAME=${{ needs.setup-database.outputs.db_username }},DB_PASSWORD=${{ needs.setup-database.outputs.db_password }}
+            --set-env-vars=NODE_ENV=${{ github.event.inputs.environment || 'production' }},FRONTEND_URL=https://frontend-${{ github.event.inputs.environment || 'staging' }}-${{ env.GCP_PROJECT_NUMBER }}.${{ env.GCP_REGION }}.run.app,DB_HOST=${{ needs.setup-database.outputs.db_host }},DB_NAME=${{ needs.setup-database.outputs.db_name }},DB_USERNAME=${{ needs.setup-database.outputs.db_username }},DB_PASSWORD=${{ needs.setup-database.outputs.db_password }}
 
       - name: Show Output
         run: |
