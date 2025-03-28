@@ -9,6 +9,7 @@ ARG APP_ENV=production
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
+
 # Install dependencies
 RUN npm ci --legacy-peer-deps
 
